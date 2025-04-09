@@ -1,0 +1,7 @@
+version: v2
+plugins:
+- local: protoc-gen-go-patch
+  out: .
+  opt:
+  - plugin=go
+  - paths=source_relative

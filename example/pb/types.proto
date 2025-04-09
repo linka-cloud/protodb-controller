@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "./pb;pb";
+
+import "patch/go.proto";
+
+option (go.lint).all = true;
+
+message Resource {
+  string id = 1;
+  string name = 2;
+  Status status = 3;
+}
+
+message Status {
+  string message = 1;
+}
