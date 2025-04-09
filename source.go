@@ -52,6 +52,10 @@ func (s *src[T, PT, K]) Start(ctx context.Context, w workqueue.TypedRateLimiting
 	if err != nil {
 		return err
 	}
+	select {
+	case s.sync <- struct{}{}:
+	default:
+	}
 	go func() {
 		defer w.ShutDown()
 		for {

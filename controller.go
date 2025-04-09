@@ -82,7 +82,6 @@ func New[T any, PT Message[T], K comparable](name string, db protodb.Client, fn 
 }
 
 func (c *ctrl[T, PT, K]) Start(ctx context.Context) error {
-	c.s.Sync()
 	if err := c.c.Watch(c.s); err != nil {
 		return err
 	}
