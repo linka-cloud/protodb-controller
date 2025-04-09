@@ -29,8 +29,8 @@ type src[T any, PT Message[T], K comparable] struct {
 }
 
 func (s *src[T, PT, K]) String() string {
-	var z T
-	return fmt.Sprintf("protodb/*%T", z)
+	var z PT
+	return fmt.Sprintf("protodb/%s", z.ProtoReflect().Descriptor().FullName())
 }
 
 func (s *src[T, PT, K]) Start(ctx context.Context, w workqueue.TypedRateLimitingInterface[K]) error {

@@ -324,7 +324,7 @@ func (c *Controller[request]) reconcileHandler(ctx context.Context, req request,
 	log := c.LogConstructor(&req)
 	reconcileID := uuid.NewUUID()
 
-	log = log.WithValues("reconcileID", reconcileID)
+	log = log.WithValues("reconcileID", string(reconcileID))
 	ctx = logf.IntoContext(ctx, log)
 	ctx = addReconcileID(ctx, reconcileID)
 

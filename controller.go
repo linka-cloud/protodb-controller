@@ -17,7 +17,10 @@ package controller
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/go-logr/logr"
+	"go.linka.cloud/grpc-toolkit/logger"
 	"go.linka.cloud/protodb"
 	"go.linka.cloud/protodb/typed"
 	"google.golang.org/protobuf/proto"
@@ -50,11 +53,25 @@ type ctrl[T any, PT Message[T], K comparable] struct {
 }
 
 func New[T any, PT Message[T], K comparable](name string, db protodb.Client, fn Key[PT, K], options Options[K]) (Controller, error) {
+	var z PT
+	t := z.ProtoReflect().Descriptor().FullName()
 	if db == nil {
 		return nil, errors.New("db is required")
 	}
 	if fn == nil {
 		return nil, errors.New("fn is required")
+	}
+	if options.LogConstructor == nil {
+		options.LogConstructor = func(in *K) logr.Logger {
+			var k any = "unknown"
+			if in != nil {
+				k = *in
+			}
+			return logger.StandardLogger().Logr().WithValues(
+				"controller", name,
+				"key", fmt.Sprintf("%s/%s", t, k),
+			)
+		}
 	}
 	c, err := controller.NewTypedUnmanaged[K](name, options)
 	if err != nil {
