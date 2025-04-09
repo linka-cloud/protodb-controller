@@ -45,6 +45,7 @@ func (fn KeyFunc[T, K]) Key(m T) K {
 
 type Controller interface {
 	Start(ctx context.Context) error
+	Sync()
 }
 
 type ctrl[T any, PT Message[T], K comparable] struct {
@@ -77,12 +78,17 @@ func New[T any, PT Message[T], K comparable](name string, db protodb.Client, fn 
 	if err != nil {
 		return nil, err
 	}
-	return &ctrl[T, PT, K]{s: &src[T, PT, K]{db: typed.NewStore[T, PT](db), key: fn.Key}, c: c}, nil
+	return &ctrl[T, PT, K]{s: newSrc[T, PT, K](typed.NewStore[T, PT](db), fn.Key), c: c}, nil
 }
 
 func (c *ctrl[T, PT, K]) Start(ctx context.Context) error {
+	c.s.Sync()
 	if err := c.c.Watch(c.s); err != nil {
 		return err
 	}
 	return c.c.Start(ctx)
+}
+
+func (c *ctrl[T, PT, K]) Sync() {
+	c.s.Sync()
 }

@@ -23,14 +23,27 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
+func newSrc[T any, PT Message[T], K comparable](db typed.Store[T, PT], key func(PT) K) *src[T, PT, K] {
+	return &src[T, PT, K]{
+		db:   db,
+		key:  key,
+		sync: make(chan struct{}, 1),
+	}
+}
+
 type src[T any, PT Message[T], K comparable] struct {
-	db  typed.Store[T, PT]
-	key func(PT) K
+	db   typed.Store[T, PT]
+	key  func(PT) K
+	sync chan struct{}
 }
 
 func (s *src[T, PT, K]) String() string {
 	var z PT
 	return fmt.Sprintf("protodb/%s", z.ProtoReflect().Descriptor().FullName())
+}
+
+func (s *src[T, PT, K]) Sync() {
+	s.sync <- struct{}{}
 }
 
 func (s *src[T, PT, K]) Start(ctx context.Context, w workqueue.TypedRateLimitingInterface[K]) error {
@@ -39,17 +52,21 @@ func (s *src[T, PT, K]) Start(ctx context.Context, w workqueue.TypedRateLimiting
 	if err != nil {
 		return err
 	}
-	rs, _, err := s.db.Get(ctx, &z)
-	if err != nil {
-		return err
-	}
-	for _, v := range rs {
-		w.Add(s.key(v))
-	}
 	go func() {
 		defer w.ShutDown()
 		for {
 			select {
+			case _, ok := <-s.sync:
+				if !ok {
+					return
+				}
+				rs, _, err := s.db.Get(ctx, &z)
+				if err != nil {
+					return
+				}
+				for _, v := range rs {
+					w.Add(s.key(v))
+				}
 			case e, ok := <-ch:
 				if !ok {
 					return
