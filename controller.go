@@ -62,14 +62,11 @@ func New[T any, PT Message[T], K comparable](name string, rw ReadWatcher[T, PT],
 	}
 	if options.LogConstructor == nil {
 		options.LogConstructor = func(in *K) logr.Logger {
-			var k any = "unknown"
+			log := logger.StandardLogger().Logr().WithValues("controller", name)
 			if in != nil {
-				k = *in
+				log = log.WithValues("key", fmt.Sprintf("%s/%s", t, *in))
 			}
-			return logger.StandardLogger().Logr().WithValues(
-				"controller", name,
-				"key", fmt.Sprintf("%s/%s", t, k),
-			)
+			return log
 		}
 	}
 	c, err := controller.NewTypedUnmanaged[K](name, options)
