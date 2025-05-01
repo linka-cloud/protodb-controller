@@ -47,7 +47,7 @@ func main() {
 	k := controller.KeyFunc[*pb.Resource, string](func(r *pb.Resource) string {
 		return r.GetID()
 	})
-	c, err := controller.New("noop", db.Raw(), k, controller.Options[string]{
+	c, err := controller.New("noop", db, k, controller.Options[string]{
 		Reconciler: controller.ReconcilerFunc[string](func(ctx context.Context, req string) (controller.Result, error) {
 			log := controller.LoggerFrom(ctx)
 			log.Info("Reconciling resource")

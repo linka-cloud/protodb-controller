@@ -21,8 +21,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"go.linka.cloud/grpc-toolkit/logger"
-	"go.linka.cloud/protodb"
-	"go.linka.cloud/protodb/typed"
 	"google.golang.org/protobuf/proto"
 
 	"go.linka.cloud/protodb-controller/pkg/controller"
@@ -53,11 +51,11 @@ type ctrl[T any, PT Message[T], K comparable] struct {
 	s *src[T, PT, K]
 }
 
-func New[T any, PT Message[T], K comparable](name string, db protodb.Client, fn Key[PT, K], options Options[K]) (Controller, error) {
+func New[T any, PT Message[T], K comparable](name string, rw ReadWatcher[T, PT], fn Key[PT, K], options Options[K]) (Controller, error) {
 	var z PT
 	t := z.ProtoReflect().Descriptor().FullName()
-	if db == nil {
-		return nil, errors.New("db is required")
+	if rw == nil {
+		return nil, errors.New("rw is required")
 	}
 	if fn == nil {
 		return nil, errors.New("fn is required")
@@ -78,7 +76,7 @@ func New[T any, PT Message[T], K comparable](name string, db protodb.Client, fn 
 	if err != nil {
 		return nil, err
 	}
-	return &ctrl[T, PT, K]{s: newSrc[T, PT, K](typed.NewStore[T, PT](db), fn.Key), c: c}, nil
+	return &ctrl[T, PT, K]{s: newSrc[T, PT, K](rw, fn.Key), c: c}, nil
 }
 
 func (c *ctrl[T, PT, K]) Start(ctx context.Context) error {

@@ -23,23 +23,28 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
-func newSrc[T any, PT Message[T], K comparable](db typed.Store[T, PT], key func(PT) K) *src[T, PT, K] {
+type ReadWatcher[T any, PT Message[T]] interface {
+	typed.Reader[T, PT]
+	typed.Watcher[T, PT]
+}
+
+func newSrc[T any, PT Message[T], K comparable](rw ReadWatcher[T, PT], key func(PT) K) *src[T, PT, K] {
 	return &src[T, PT, K]{
-		db:   db,
+		rw:   rw,
 		key:  key,
 		sync: make(chan struct{}, 1),
 	}
 }
 
 type src[T any, PT Message[T], K comparable] struct {
-	db   typed.Store[T, PT]
+	rw   ReadWatcher[T, PT]
 	key  func(PT) K
 	sync chan struct{}
 }
 
 func (s *src[T, PT, K]) String() string {
 	var z PT
-	return fmt.Sprintf("protodb/%s", z.ProtoReflect().Descriptor().FullName())
+	return fmt.Sprintf("protodb/%rw", z.ProtoReflect().Descriptor().FullName())
 }
 
 func (s *src[T, PT, K]) Sync() {
@@ -48,7 +53,7 @@ func (s *src[T, PT, K]) Sync() {
 
 func (s *src[T, PT, K]) Start(ctx context.Context, w workqueue.TypedRateLimitingInterface[K]) error {
 	var z T
-	ch, err := s.db.Watch(ctx, &z)
+	ch, err := s.rw.Watch(ctx, &z)
 	if err != nil {
 		return err
 	}
@@ -64,7 +69,7 @@ func (s *src[T, PT, K]) Start(ctx context.Context, w workqueue.TypedRateLimiting
 				if !ok {
 					return
 				}
-				rs, _, err := s.db.Get(ctx, &z)
+				rs, _, err := s.rw.Get(ctx, &z)
 				if err != nil {
 					return
 				}
